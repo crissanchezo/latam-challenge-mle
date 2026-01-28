@@ -27,6 +27,27 @@ Both models have similar performance (0.69), so with that in mind:
 * There is no evidence that the additional complexity of XGBoost adds value.
 So using Occam's razor (aka principle of parsimony), I chose **LogisticRegression with top 10 features and class balancing**.
 
+### Tests
+
+When I ran make model-test from project root
+
+```bash
+.                          ← make model-test
+├── data/
+│   └── data.csv
+├── tests/
+│   └── model/
+│       └── test_model.py 
+```
+
+The `../data/data.csv` is relative to the test_model.py. When I run the test in project root `../data/data.csv` is outside the project.
+So in the I use this approach:
+
+```text
+current_dir: /<path>/challenge_mle/tests/model
+data_path: /<path>/challenge_mle/tests/model/../../data/data.csv
+```
+
 ## Local execution
 
 ```bash
