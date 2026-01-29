@@ -27,7 +27,7 @@ resource "google_cloud_run_v2_service" "latam_api" {
 
   template {
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.latam_repo.repository_id}/latam_api:latest"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.latam_repo.repository_id}/latam-flight-delay-api:latest"
       ports {
         container_port = 8080
       }

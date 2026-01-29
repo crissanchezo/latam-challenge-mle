@@ -7,11 +7,11 @@ on:
       - feature/ci_cd
 
 env:
-  SERVICE: 'latam-api'
+  SERVICE: 'latam-flight-delay-api'
   REPO_NAME: 'latam-challenge'
 
 jobs:
-  job_id:
+  deploy:
     runs-on: ubuntu-latest
     environment: latam_env
 
@@ -55,9 +55,13 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Deploy to Cloud Run
+      id: deploy
       uses: 'google-github-actions/deploy-cloudrun@v3'
       with:
           service: ${{ env.SERVICE }}
           region: ${{ secrets.REGION }}
           image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
           flags: "--allow-unauthenticated"
+
+    - name: Verify deployment
+      run: curl --fail "${{ steps.deploy.outputs.url }}/health"
