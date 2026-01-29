@@ -3,10 +3,7 @@ name: 'Continuous Delivery'
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - feature/ci_cd
 
 env:
   SERVICE: 'latam-flight-delay-api'
