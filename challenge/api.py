@@ -13,31 +13,7 @@ from challenge.model import DelayModel
 
 logger = logging.getLogger("uvicorn.error")
 
-VALID_OPERATORS = [
-    "Grupo LATAM",
-    "Sky Airline",
-    "Aerolineas Argentinas",
-    "Copa Air",
-    "Latin American Wings",
-    "Avianca",
-    "JetSmart SPA",
-    "Gol Trans",
-    "American Airlines",
-    "Air Canada",
-    "Iberia",
-    "Delta Air",
-    "Air France",
-    "Aeromexico",
-    "United Airlines",
-    "Oceanair Linhas Aereas",
-    "Alitalia",
-    "K.L.M.",
-    "British Airways",
-    "Qantas Airways",
-    "Lacsa",
-    "Austral",
-    "Plus Ultra Lineas Aereas",
-]
+VALID_OPERATORS: list[str] = []
 
 
 class Flight(BaseModel):
@@ -59,13 +35,6 @@ class Flight(BaseModel):
             raise ValueError("TIPOVUELO must be 'I' or 'N'")
         return v
 
-    @field_validator("OPERA")
-    @classmethod
-    def validate_opera(cls, v: str) -> str:
-        if v not in VALID_OPERATORS:
-            raise ValueError(f"OPERA '{v}' is not a valid operator")
-        return v
-
 
 class PredictRequest(BaseModel):
     flights: List[Flight]
@@ -73,16 +42,20 @@ class PredictRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Application startup: Training model...")
+    global VALID_OPERATORS
 
-    try:
-        data = pd.read_csv("data/data.csv")
-        logger.info(f"Application startup: Data loaded, shape: {data.shape}")
-        features, target = model.preprocess(data=data, target_column="delay")
-        model.fit(features=features, target=target)
-        logger.info("Application startup: Training complete")
-    except Exception as e:
-        logger.error("Application startup error: %s", e)
+    logger.info("Application startup: Loading data...")
+    data = pd.read_csv("data/data.csv")
+    logger.info("Application startup: Data loaded, shape: %s", data.shape)
+
+    VALID_OPERATORS = data["OPERA"].unique().tolist()
+    logger.info("Application startup: Valid operators: %s", VALID_OPERATORS)
+
+    logger.info("Application startup: Training model...")
+    features, target = model.preprocess(data=data, target_column="delay")
+    model.fit(features=features, target=target)
+    logger.info("Application startup: Training complete")
+
     yield
 
     logger.info("Shutdown application...")
@@ -93,7 +66,21 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """
+    When Pydantic have an validation error,
+    FastAPI throws RequestValidationError with HTTP 422 Unprocessable Entity.
+    This method transform that to HTTP 400 Bad Request
+
+    Args:
+        request (Request): Request body.
+        exc (RequestValidationError): FastAPI error.
+
+    Return:
+        JSONResponse: The response with the error.
+    """
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
@@ -104,6 +91,15 @@ async def get_health() -> dict:
 
 @app.post("/predict", status_code=200)
 async def post_predict(request: PredictRequest) -> dict:
+    if not VALID_OPERATORS:
+        logger.warning("OPERA validation skipped: operators list not loaded")
+    else:
+        for flight in request.flights:
+            if flight.OPERA not in VALID_OPERATORS:
+                raise RequestValidationError(
+                    f"Flight {flight.OPERA} is not a valid operator"
+                )
+
     flights_data = [flight.model_dump() for flight in request.flights]
     df = pd.DataFrame(flights_data)
 

@@ -48,6 +48,38 @@ current_dir: /<path>/challenge_mle/tests/model
 data_path: /<path>/challenge_mle/tests/model/../../data/data.csv
 ```
 
+## Part II (API)
+
+### Dependency Updates
+
+Original dependencies were incompatible with Python 3.12.
+
+| Package | Original | Updated | Reason |
+| --------- | ---------- | --------- | -------- |
+| FastAPI | ~0.86.0 | >=0.110.0 | Python 3.12 + Pydantic v2 support |
+| Pydantic | ~1.10.2 | >=2.0.0 | Modern validation syntax |
+| uvicorn | ~0.15.0 | >=0.23.0 | Python 3.12 compatibility |
+| pandas | ~1.3.5 | >=2.0.0 | Python 3.12 compatibility |
+| numpy | ~1.22.4 | >=1.26.0 | Python 3.12 compatibility |
+
+### Design Decisions
+
+1. Application startup
+    The model is loaded and trained at startup for simplicity given the challenge scope.
+    Loading a pre-trained model (pickle) at startup instead of training on-the-fly would be more production-appropriate.
+
+    > **Fail-fast approach**: No try/catch around startup logic. If CSV loading or model training fails, the application does not start. This prevents running in an inconsistent state.
+
+2. Input Validation with Pydantic
+    Created `Flight` and `PredictRequest` models with field validators:
+
+    * **MES**: Must be between 1 and 12
+    * **TIPOVUELO**: Must be "I" (International) or "N" (National)
+    * **OPERA**: Validated at runtime against operators loaded from CSV
+
+3. HTTP 400 vs 422
+    FastAPI/Pydantic returns HTTP 422 for validation errors by default. I change that in an custom exception handler to return HTTP 400 as required by tests.
+
 ## Local execution
 
 ```bash
