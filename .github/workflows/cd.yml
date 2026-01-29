@@ -7,7 +7,7 @@ on:
       - feature/ci_cd
 
 env:
-  SERVICE: 'latam-flight-delay-api'
+  SERVICE: 'latam-api'
   REPO_NAME: 'latam-challenge'
 
 jobs:
