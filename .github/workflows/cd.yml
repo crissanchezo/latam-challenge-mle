@@ -36,6 +36,7 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ secrets.REGION }}
           image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
+          flags: "--allow-unauthenticated"
 
     - name: Use output
       run: 'curl "${{ steps.deploy.outputs.url }}/health"'
