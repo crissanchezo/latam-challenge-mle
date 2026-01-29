@@ -82,9 +82,7 @@ Original dependencies were incompatible with Python 3.12.
 
 ## Part III (deploy)
 
-### Infrastructure as Code
-
-Used **Terraform** to provision GCP resources:
+For this part I used GCP and Terraform. With this I provisioned the following GCP resources:
 
 * **Artifact Registry**: Docker image repository
 * **Cloud Run**: Serverless container hosting
@@ -102,15 +100,28 @@ Used **Terraform** to provision GCP resources:
 
 ### Build & Deploy
 
+1. Enable the Artifact Registry and Cloud Run APIs in GCP.
+2. Create an Artifact Registry repository.
+3. Build the image locally (pay special attention to the local architecture).
+4. Push the image.
+5. Deploy the API.
+6. Configure IAM to grant unauthenticated access to the API.
+
 ```bash
-# Build for linux/amd64 (Cloud Run architecture)
-podman build --platform linux/amd64 -t $IMAGE_URL .
+cd terraform
+terraform init
 
-# Push to Artifact Registry
-podman push $IMAGE_URL
+terraform apply -target=google_artifact_registry_repository.repo
 
-# Deploy infrastructure
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# I specified the platform since my machine have macOS
+docker build --platform linux/amd64 -t us-central1-docker.pkg.dev/TU_PROYECTO/latam-challenge/latam_api:latest .
+docker push us-central1-docker.pkg.dev/TU_PROYECTO/latam-challenge/latam_api:latest
+
 terraform apply
+
+terraform output cloud_run_url
 ```
 
 ### Stress Test Results
