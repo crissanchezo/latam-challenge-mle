@@ -80,6 +80,57 @@ Original dependencies were incompatible with Python 3.12.
 3. HTTP 400 vs 422
     FastAPI/Pydantic returns HTTP 422 for validation errors by default. I change that in an custom exception handler to return HTTP 400 as required by tests.
 
+## Part III (deploy)
+
+### Infrastructure as Code
+
+Used **Terraform** to provision GCP resources:
+
+* **Artifact Registry**: Docker image repository
+* **Cloud Run**: Serverless container hosting
+* **IAM Policy**: Public access (unauthenticated)
+
+### Cloud Run Configuration
+
+| Setting | Value | Reason |
+| --------- | ------- | -------- |
+| CPU | 1 | Sufficient for ML inference |
+| Memory | 1Gi | Model + pandas operations |
+| Min instances | 0 | Scale to zero (cost optimization) |
+| Max instances | 3 | Limit costs during stress test |
+| Ingress | All traffic | Public API access |
+
+### Build & Deploy
+
+```bash
+# Build for linux/amd64 (Cloud Run architecture)
+podman build --platform linux/amd64 -t $IMAGE_URL .
+
+# Push to Artifact Registry
+podman push $IMAGE_URL
+
+# Deploy infrastructure
+terraform apply
+```
+
+### Stress Test Results
+
+| Metric | Value |
+| -------- | ------- |
+| Total requests | 7,264 |
+| Failures | 0 (0.00%) |
+| Avg response time | 220ms |
+| Median response time | 210ms |
+| Throughput | 126 req/s |
+| P95 | 290ms |
+| P99 | 430ms |
+
+### Cleanup
+
+```bash
+terraform destroy
+```
+
 ## Local execution
 
 ```bash
