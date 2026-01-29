@@ -144,7 +144,64 @@ terraform destroy
 
 ## Part IV (CI/CD)
 
-Enable IAM Service Account Credentials.
+### Continuous Integration (`ci.yml`)
+
+**Trigger**: Push to any branch
+
+**Steps**:
+
+1. Checkout code
+2. Setup Python 3.12
+3. Install dependencies
+4. Run model tests (`make model-test`)
+5. Run API tests (`make api-test`)
+
+### Continuous Delivery (`cd.yml`)
+
+**Trigger**: Push to `main` branch (after CI passes)
+
+**Steps**:
+
+1. Checkout code
+2. Authenticate to GCP using Workload Identity Federation
+3. Login to Artifact Registry
+4. Build Docker image (with caching)
+5. Push image with tags: `latest` and `${{ github.sha }}`
+6. Deploy to Cloud Run
+
+### GCP Authentication
+
+Used **Workload Identity Federation** instead of service account keys:
+
+* More secure (no long-lived credentials).
+* Recommended by Google for GitHub Actions.
+* Configured via GitHub environment secrets.
+
+### Docker Image Strategy
+
+| Tag | Purpose |
+| ----- | --------- |
+| `latest` | Always points to most recent build |
+| `${{ github.sha }}` | Immutable, traceable to specific commit |
+
+### Infrastructure Management
+
+| Component | Managed by |
+| ----------- | ------------ |
+| Artifact Registry | Terraform (persistent) |
+| Cloud Run Service | Terraform (initial) + CD (updates) |
+| IAM Policies | Terraform |
+
+### Secrets Configuration
+
+Stored in GitHub environment `latam_env`:
+
+* `PROJECT_ID`
+* `REGION`
+* `SERVICE_ACCOUNT`
+* `WORKLOAD_IDENTITY_PROVIDER`
+
+Note: IAM Service Account Credentials API needs to be enabled.
 
 ## Local execution
 
@@ -158,7 +215,7 @@ pytest
 jupyter notebook
 ```
 
-## Notes
+## General Notes
 
 * This project requires Python ≥ 3.12.
 * Some dependencies were updated to ensure compatibility.

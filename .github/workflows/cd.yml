@@ -1,10 +1,11 @@
 name: 'Continuous Delivery'
 
-# TODO: Change it
 on:
-  push:
-    branches:
-      - feature/ci_cd
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    branches: [main]
+    types:
+      - completed
 
 env:
   SERVICE: 'latam-flight-delay-api'
