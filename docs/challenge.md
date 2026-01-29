@@ -142,6 +142,10 @@ terraform output cloud_run_url
 terraform destroy
 ```
 
+## Part IV (CI/CD)
+
+Enable IAM Service Account Credentials.
+
 ## Local execution
 
 ```bash

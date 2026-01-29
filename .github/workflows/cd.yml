@@ -34,7 +34,7 @@ jobs:
       with:
           service: ${{ env.SERVICE }}
           region: ${{ secrets.REGION }}
-          image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.GCP_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
+          image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
 
     - name: Use output
       run: 'curl "${{ steps.deploy.outputs.url }}/health"'
