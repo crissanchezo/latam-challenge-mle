@@ -15,6 +15,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: latam_env
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }} 
 
     permissions:
       contents: 'read'
@@ -23,6 +24,8 @@ jobs:
     steps:
     - name: Checkout
       uses: 'actions/checkout@v4'
+      with:
+        ref: ${{ github.event.workflow_run.head_sha }}
 
     - name: GCP Authentication
       id: auth
@@ -50,7 +53,7 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}
+          ${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.event.workflow_run.head_sha }}
           ${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -61,7 +64,7 @@ jobs:
       with:
           service: ${{ env.SERVICE }}
           region: ${{ secrets.REGION }}
-          image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
+          image: "${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE }}:${{ github.event.workflow_run.head_sha }}"
           flags: "--allow-unauthenticated"
 
     - name: Verify deployment
