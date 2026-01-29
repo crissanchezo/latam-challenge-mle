@@ -1,3 +1,5 @@
+import logging
+from contextlib import asynccontextmanager
 from typing import List
 
 import pandas as pd
@@ -9,13 +11,32 @@ from pydantic import BaseModel, field_validator
 from challenge.model import DelayModel
 
 
+logger = logging.getLogger("uvicorn.error")
+
 VALID_OPERATORS = [
-    "Grupo LATAM", "Sky Airline", "Aerolineas Argentinas", "Copa Air",
-    "Latin American Wings", "Avianca", "JetSmart SPA", "Gol Trans",
-    "American Airlines", "Air Canada", "Iberia", "Delta Air",
-    "Air France", "Aeromexico", "United Airlines", "Oceanair Linhas Aereas",
-    "Alitalia", "K.L.M.", "British Airways", "Qantas Airways",
-    "Lacsa", "Austral", "Plus Ultra Lineas Aereas"
+    "Grupo LATAM",
+    "Sky Airline",
+    "Aerolineas Argentinas",
+    "Copa Air",
+    "Latin American Wings",
+    "Avianca",
+    "JetSmart SPA",
+    "Gol Trans",
+    "American Airlines",
+    "Air Canada",
+    "Iberia",
+    "Delta Air",
+    "Air France",
+    "Aeromexico",
+    "United Airlines",
+    "Oceanair Linhas Aereas",
+    "Alitalia",
+    "K.L.M.",
+    "British Airways",
+    "Qantas Airways",
+    "Lacsa",
+    "Austral",
+    "Plus Ultra Lineas Aereas",
 ]
 
 
@@ -50,48 +71,42 @@ class PredictRequest(BaseModel):
     flights: List[Flight]
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Application startup: Training model...")
+
+    try:
+        data = pd.read_csv("data/data.csv")
+        logger.info(f"Application startup: Data loaded, shape: {data.shape}")
+        features, target = model.preprocess(data=data, target_column="delay")
+        model.fit(features=features, target=target)
+        logger.info("Application startup: Training complete")
+    except Exception as e:
+        logger.error("Application startup error: %s", e)
+    yield
+
+    logger.info("Shutdown application...")
+
+
 model = DelayModel()
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError
-):
-    return JSONResponse(
-        status_code=400,
-        content={"detail": str(exc)}
-    )
-
-
-@app.on_event("startup")
-async def startup_event():
-    print(">>> STARTUP: Training model...")
-    
-    try:
-        data = pd.read_csv("data/data.csv")
-        print(f">>> STARTUP: Data loaded, shape: {data.shape}")
-        features, target = model.preprocess(data=data, target_column="delay")
-        model.fit(features=features, target=target)
-        print(">>> STARTUP: Training complete")
-    except Exception as e:
-        print(f">>> STARTUP ERROR: {e}")
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.get("/health", status_code=200)
 async def get_health() -> dict:
-    return {
-        "status": "OK"
-    }
+    return {"status": "OK"}
 
 
 @app.post("/predict", status_code=200)
 async def post_predict(request: PredictRequest) -> dict:
-
     flights_data = [flight.model_dump() for flight in request.flights]
     df = pd.DataFrame(flights_data)
-    
+
     features = model.preprocess(data=df)
     predictions = model.predict(features=features)
 
