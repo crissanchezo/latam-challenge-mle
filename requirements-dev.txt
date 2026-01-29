@@ -284,6 +284,7 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
+ruff==0.14.14
 scipy==1.17.0
     # via xgboost
 seaborn==0.13.2
