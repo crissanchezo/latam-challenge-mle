@@ -8,7 +8,7 @@ on:
 
 env:
   SERVICE: 'latam-flight-delay-api'
-  REPO_NAME: 'latam_repo'
+  REPO_NAME: 'latam-challenge'
 
 jobs:
   job_id:
